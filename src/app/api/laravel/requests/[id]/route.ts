@@ -250,17 +250,13 @@ export async function DELETE(
       );
     }
 
-    const { error } = await supabase
-      .from('repair_requests')
-      .delete()
-      .eq('id', params.id);
+    const success = deleteRepairRequest(params.id);
 
-    if (error) {
-      console.error('Supabase error:', error);
+    if (!success) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Failed to delete request'
+          error: 'Failed to delete request or request not found'
         },
         { status: 500 }
       );
