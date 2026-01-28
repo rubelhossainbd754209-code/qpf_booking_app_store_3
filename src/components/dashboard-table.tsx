@@ -37,7 +37,7 @@ export function DashboardTable() {
 
   const fetchRequests = async () => {
     try {
-      const response = await fetch('/api/store-2/requests');
+      const response = await fetch('/api/store-3/requests');
       const data = await response.json();
       if (data.requests) {
         setRequests(data.requests);
@@ -126,7 +126,7 @@ export function DashboardTable() {
     // Delete immediately without confirm dialog
     setIsDeleting(true);
     try {
-      const response = await fetch('/api/store-2/requests', {
+      const response = await fetch('/api/store-3/requests', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: Array.from(selectedIds) })

@@ -39,7 +39,7 @@ export function FormOptionsManager() {
 
   const fetchFormOptions = async () => {
     try {
-      const response = await fetch('/api/store-2/form-options');
+      const response = await fetch('/api/store-3/form-options');
       const data = await response.json();
       if (data.formOptions) {
         setFormOptions(data.formOptions);
@@ -60,7 +60,7 @@ export function FormOptionsManager() {
     if (!newBrand.trim()) return;
 
     try {
-      const response = await fetch('/api/store-2/form-options', {
+      const response = await fetch('/api/store-3/form-options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -92,7 +92,7 @@ export function FormOptionsManager() {
     if (!newDeviceType.trim() || !selectedBrandForDevice) return;
 
     try {
-      const response = await fetch('/api/store-2/form-options', {
+      const response = await fetch('/api/store-3/form-options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -127,7 +127,7 @@ export function FormOptionsManager() {
     if (!newModel.trim() || !selectedBrandForModel || !selectedDeviceTypeForModel) return;
 
     try {
-      const response = await fetch('/api/store-2/form-options', {
+      const response = await fetch('/api/store-3/form-options', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -161,7 +161,7 @@ export function FormOptionsManager() {
 
   const removeBrand = async (brand: string) => {
     try {
-      const response = await fetch('/api/store-2/form-options', {
+      const response = await fetch('/api/store-3/form-options', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

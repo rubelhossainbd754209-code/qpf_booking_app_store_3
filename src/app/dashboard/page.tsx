@@ -67,7 +67,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold leading-tight tracking-tighter md:text-4xl lg:leading-[1.1] font-headline">
-                Admin Dashboard <span className="text-red-500 font-normal text-xl md:text-2xl ml-2">— Store-2</span>
+                Admin Dashboard <span className="text-red-500 font-normal text-xl md:text-2xl ml-2">— Store-3</span>
               </h1>
               <p className="max-w-[750px] text-lg text-muted-foreground sm:text-xl mt-2">
                 Manage repair requests and form configurations

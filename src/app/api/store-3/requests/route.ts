@@ -111,13 +111,15 @@ export async function POST(request: NextRequest) {
                 laravelSuccess = response.ok;
 
                 if (!laravelSuccess) {
-                    console.error('Laravel API error:', laravelResponse);
+                    console.error('❌ Store 3 Laravel API Error:', laravelResponse);
                 } else {
-                    console.log('Successfully forwarded to Store 3 Laravel:', laravelResponse);
+                    console.log('✅ Successfully forwarded to Store 3 Laravel:', laravelResponse);
                 }
             } catch (laravelError) {
-                console.error('Failed to forward to Laravel API:', laravelError);
+                console.error('❌ Failed to forward to Store 3 Laravel API:', laravelError);
             }
+        } else {
+            console.warn('⚠️ Forwarding skipped: FORWARD_TO_LARAVEL is false or LARAVEL_API_URL is missing');
         }
 
         // Always create a local fallback record for tracking

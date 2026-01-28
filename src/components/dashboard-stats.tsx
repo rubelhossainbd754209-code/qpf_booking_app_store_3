@@ -45,7 +45,7 @@ export function DashboardStats() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/store-2/requests');
+      const response = await fetch('/api/store-3/requests');
       const data = await response.json();
 
       if (data.requests) {
