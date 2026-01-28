@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRepairRequests } from '@/lib/data';
+import { getRepairRequests, createRepairRequest } from '@/lib/data';
 
 /**
  * Laravel Integration API for Repair Requests
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest) {
       customer_email: newRequest.email,
       customer_address: newRequest.address,
       device_brand: newRequest.brand,
-      device_type: newRequest.deviceType,
+      device_type: newRequest.device_type,
       device_model: newRequest.model,
       issue_description: newRequest.message,
       status: newRequest.status,

@@ -270,6 +270,24 @@ export function createRepairRequest(data: {
   return newRequest;
 }
 
+// Update repair request
+export function updateRepairRequest(id: string, data: Partial<Omit<RepairRequest, 'id' | 'created_at'>>) {
+  const request = repairRequestsData.find(r => r.id === id);
+  if (request) {
+    if (data.customer_name) request.customer_name = data.customer_name;
+    if (data.phone) request.phone = data.phone;
+    if (data.email !== undefined) request.email = data.email;
+    if (data.address !== undefined) request.address = data.address;
+    if (data.brand) request.brand = data.brand;
+    if (data.device_type) request.device_type = data.device_type;
+    if (data.model) request.model = data.model;
+    if (data.message !== undefined) request.message = data.message;
+    if (data.status) request.status = data.status;
+    return request;
+  }
+  return null;
+}
+
 // Update repair request status
 export function updateRepairRequestStatus(id: string, status: RepairRequest['status']) {
   const request = repairRequestsData.find(r => r.id === id);

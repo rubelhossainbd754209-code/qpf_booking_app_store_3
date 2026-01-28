@@ -1,3 +1,4 @@
+import { NextRequest, NextResponse } from 'next/server';
 import { getRepairRequest, updateRepairRequest, deleteRepairRequest } from '@/lib/data';
 
 /**
@@ -58,14 +59,14 @@ export async function GET(
       request_id: requestItem.id,
 
       // Customer information
-      customer_name: requestItem.customer,
+      customer_name: requestItem.customer_name,
       customer_phone: requestItem.phone,
       customer_email: requestItem.email,
       customer_address: requestItem.address,
 
       // Device information
       device_brand: requestItem.brand,
-      device_type: requestItem.deviceType,
+      device_type: requestItem.device_type,
       device_model: requestItem.model,
 
       // Request details
@@ -73,8 +74,8 @@ export async function GET(
       status: requestItem.status,
 
       // Timestamps
-      created_at: requestItem.createdAt,
-      updated_at: requestItem.updatedAt || requestItem.createdAt,
+      created_at: requestItem.created_at,
+      updated_at: requestItem.created_at,
 
       // Additional Laravel-friendly fields
       is_new: requestItem.status === 'New',
@@ -83,11 +84,11 @@ export async function GET(
       is_on_hold: requestItem.status === 'On Hold',
 
       // Formatted display fields
-      customer_display: requestItem.customer,
-      device_display: `${requestItem.brand} ${requestItem.deviceType} - ${requestItem.model}`,
+      customer_display: requestItem.customer_name,
+      device_display: `${requestItem.brand} ${requestItem.device_type} - ${requestItem.model}`,
       status_display: requestItem.status,
-      created_date: new Date(requestItem.createdAt).toISOString().split('T')[0],
-      created_time: new Date(requestItem.createdAt).toLocaleTimeString(),
+      created_date: new Date(requestItem.created_at).toISOString().split('T')[0],
+      created_time: new Date(requestItem.created_at).toLocaleTimeString(),
     };
 
     return NextResponse.json({
