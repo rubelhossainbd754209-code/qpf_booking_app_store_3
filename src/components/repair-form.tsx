@@ -131,10 +131,10 @@ export function RepairForm() {
     console.log('Final data to submit:', finalData);
 
     try {
-      console.log('Sending POST request to /api/store-2/requests...');
+      console.log('Sending POST request to /api/store-3/requests...');
 
-      // Send data to our Next.js API which will forward to Laravel
-      const response = await fetch('/api/store-2/requests', {
+      // Send data to our Next.js API (Store 3) which will forward to Laravel
+      const response = await fetch('/api/store-3/requests', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
