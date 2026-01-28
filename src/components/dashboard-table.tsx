@@ -57,7 +57,7 @@ export function DashboardTable() {
 
   const updateRequestStatus = async (requestId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/store-2/requests/${requestId}`, {
+      const response = await fetch(`/api/store-3/requests/${requestId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -84,7 +84,7 @@ export function DashboardTable() {
     // Delete immediately without confirm dialog
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/store-2/requests/${requestId}`, {
+      const response = await fetch(`/api/store-3/requests/${requestId}`, {
         method: 'DELETE'
       });
 
