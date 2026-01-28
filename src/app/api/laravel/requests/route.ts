@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getRepairRequests } from '@/lib/data';
 
 /**
  * Laravel Integration API for Repair Requests
@@ -36,10 +36,10 @@ export async function GET(request: NextRequest) {
     // Validate API key
     if (!validateApiKey(request)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Unauthorized. Please provide a valid API key in X-API-Key header.' 
-        }, 
+        {
+          success: false,
+          error: 'Unauthorized. Please provide a valid API key in X-API-Key header.'
+        },
         { status: 401 }
       );
     }
@@ -76,10 +76,10 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to fetch requests' 
-        }, 
+        {
+          success: false,
+          error: 'Failed to fetch requests'
+        },
         { status: 500 }
       );
     }
@@ -89,32 +89,32 @@ export async function GET(request: NextRequest) {
       // Primary identifiers
       id: request.id,
       request_id: request.id,
-      
+
       // Customer information
       customer_name: request.customer_name,
       customer_phone: request.phone,
       customer_email: request.email,
       customer_address: request.address,
-      
+
       // Device information
       device_brand: request.brand,
       device_type: request.device_type,
       device_model: request.model,
-      
+
       // Request details
       issue_description: request.message,
       status: request.status,
-      
+
       // Timestamps
       created_at: request.created_at,
       updated_at: request.updated_at || request.created_at,
-      
+
       // Additional Laravel-friendly fields
       is_new: request.status === 'New',
       is_in_progress: request.status === 'In Progress',
       is_completed: request.status === 'Completed',
       is_on_hold: request.status === 'On Hold',
-      
+
       // Formatted display fields
       customer_display: request.customer_name,
       device_display: `${request.brand} ${request.device_type} - ${request.model}`,
@@ -148,10 +148,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Laravel API error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error' 
-      }, 
+      {
+        success: false,
+        error: 'Internal server error'
+      },
       { status: 500 }
     );
   }
@@ -184,10 +184,10 @@ export async function POST(request: NextRequest) {
     // Validate API key
     if (!validateApiKey(request)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Unauthorized. Please provide a valid API key in X-API-Key header.' 
-        }, 
+        {
+          success: false,
+          error: 'Unauthorized. Please provide a valid API key in X-API-Key header.'
+        },
         { status: 401 }
       );
     }
@@ -200,10 +200,10 @@ export async function POST(request: NextRequest) {
 
     if (missingFields.length > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `Missing required fields: ${missingFields.join(', ')}` 
-        }, 
+        {
+          success: false,
+          error: `Missing required fields: ${missingFields.join(', ')}`
+        },
         { status: 400 }
       );
     }
@@ -230,10 +230,10 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to create request' 
-        }, 
+        {
+          success: false,
+          error: 'Failed to create request'
+        },
         { status: 500 }
       );
     }
@@ -264,10 +264,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Laravel API error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error' 
-      }, 
+      {
+        success: false,
+        error: 'Internal server error'
+      },
       { status: 500 }
     );
   }
