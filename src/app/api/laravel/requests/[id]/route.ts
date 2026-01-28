@@ -148,40 +148,20 @@ export async function PUT(
 
     const body = await request.json();
 
-    // Transform Laravel data to our database format
-    const updateData: any = {};
-    if (body.status) updateData.status = body.status;
-    if (body.customer_name) updateData.customer_name = body.customer_name;
-    if (body.customer_phone) updateData.phone = body.customer_phone;
-    if (body.customer_email !== undefined) updateData.email = body.customer_email;
-    if (body.customer_address !== undefined) updateData.address = body.customer_address;
-    if (body.device_brand) updateData.brand = body.device_brand;
-    if (body.device_type) updateData.device_type = body.device_type;
-    if (body.device_model) updateData.model = body.device_model;
-    if (body.issue_description !== undefined) updateData.message = body.issue_description;
+    // Update local data
+    const updatedRequest = updateRepairRequest(params.id, {
+      status: body.status,
+      customer_name: body.customer_name,
+      phone: body.customer_phone,
+      email: body.customer_email,
+      address: body.customer_address,
+      brand: body.device_brand,
+      device_type: body.device_type,
+      model: body.device_model,
+      message: body.issue_description
+    });
 
-    // Add updated timestamp
-    updateData.updated_at = new Date().toISOString();
-
-    const { data, error } = await supabase
-      .from('repair_requests')
-      .update(updateData)
-      .eq('id', params.id)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to update request'
-        },
-        { status: 500 }
-      );
-    }
-
-    if (!data) {
+    if (!updatedRequest) {
       return NextResponse.json(
         {
           success: false,
@@ -193,19 +173,19 @@ export async function PUT(
 
     // Return Laravel-formatted response
     const laravelFormattedRequest = {
-      id: data.id,
-      request_id: data.id,
-      customer_name: data.customer_name,
-      customer_phone: data.phone,
-      customer_email: data.email,
-      customer_address: data.address,
-      device_brand: data.brand,
-      device_type: data.device_type,
-      device_model: data.model,
-      issue_description: data.message,
-      status: data.status,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
+      id: updatedRequest.id,
+      request_id: updatedRequest.id,
+      customer_name: updatedRequest.customer_name,
+      customer_phone: updatedRequest.phone,
+      customer_email: updatedRequest.email,
+      customer_address: updatedRequest.address,
+      device_brand: updatedRequest.brand,
+      device_type: updatedRequest.device_type,
+      device_model: updatedRequest.model,
+      issue_description: updatedRequest.message,
+      status: updatedRequest.status,
+      created_at: updatedRequest.created_at,
+      updated_at: updatedRequest.created_at,
     };
 
     return NextResponse.json({
