@@ -1,5 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getRepairRequest, updateRepairRequest, deleteRepairRequest } from '@/lib/data';
 
 /**
  * Laravel Integration API for Individual Repair Request
@@ -32,26 +31,22 @@ export async function GET(
     // Validate API key
     if (!validateApiKey(request)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Unauthorized. Please provide a valid API key in X-API-Key header.' 
-        }, 
+        {
+          success: false,
+          error: 'Unauthorized. Please provide a valid API key in X-API-Key header.'
+        },
         { status: 401 }
       );
     }
 
-    const { data: requestItem, error } = await supabase
-      .from('repair_requests')
-      .select('*')
-      .eq('id', params.id)
-      .single();
+    const requestItem = getRepairRequest(params.id);
 
-    if (error || !requestItem) {
+    if (!requestItem) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Request not found' 
-        }, 
+        {
+          success: false,
+          error: 'Request not found'
+        },
         { status: 404 }
       );
     }
@@ -61,38 +56,38 @@ export async function GET(
       // Primary identifiers
       id: requestItem.id,
       request_id: requestItem.id,
-      
+
       // Customer information
-      customer_name: requestItem.customer_name,
+      customer_name: requestItem.customer,
       customer_phone: requestItem.phone,
       customer_email: requestItem.email,
       customer_address: requestItem.address,
-      
+
       // Device information
       device_brand: requestItem.brand,
-      device_type: requestItem.device_type,
+      device_type: requestItem.deviceType,
       device_model: requestItem.model,
-      
+
       // Request details
       issue_description: requestItem.message,
       status: requestItem.status,
-      
+
       // Timestamps
-      created_at: requestItem.created_at,
-      updated_at: requestItem.updated_at || requestItem.created_at,
-      
+      created_at: requestItem.createdAt,
+      updated_at: requestItem.updatedAt || requestItem.createdAt,
+
       // Additional Laravel-friendly fields
       is_new: requestItem.status === 'New',
       is_in_progress: requestItem.status === 'In Progress',
       is_completed: requestItem.status === 'Completed',
       is_on_hold: requestItem.status === 'On Hold',
-      
+
       // Formatted display fields
-      customer_display: requestItem.customer_name,
-      device_display: `${requestItem.brand} ${requestItem.device_type} - ${requestItem.model}`,
+      customer_display: requestItem.customer,
+      device_display: `${requestItem.brand} ${requestItem.deviceType} - ${requestItem.model}`,
       status_display: requestItem.status,
-      created_date: new Date(requestItem.created_at).toISOString().split('T')[0],
-      created_time: new Date(requestItem.created_at).toLocaleTimeString(),
+      created_date: new Date(requestItem.createdAt).toISOString().split('T')[0],
+      created_time: new Date(requestItem.createdAt).toLocaleTimeString(),
     };
 
     return NextResponse.json({
@@ -103,10 +98,10 @@ export async function GET(
   } catch (error) {
     console.error('Laravel API error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error' 
-      }, 
+      {
+        success: false,
+        error: 'Internal server error'
+      },
       { status: 500 }
     );
   }
@@ -142,10 +137,10 @@ export async function PUT(
     // Validate API key
     if (!validateApiKey(request)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Unauthorized. Please provide a valid API key in X-API-Key header.' 
-        }, 
+        {
+          success: false,
+          error: 'Unauthorized. Please provide a valid API key in X-API-Key header.'
+        },
         { status: 401 }
       );
     }
@@ -177,20 +172,20 @@ export async function PUT(
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to update request' 
-        }, 
+        {
+          success: false,
+          error: 'Failed to update request'
+        },
         { status: 500 }
       );
     }
 
     if (!data) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Request not found' 
-        }, 
+        {
+          success: false,
+          error: 'Request not found'
+        },
         { status: 404 }
       );
     }
@@ -221,10 +216,10 @@ export async function PUT(
   } catch (error) {
     console.error('Laravel API error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error' 
-      }, 
+      {
+        success: false,
+        error: 'Internal server error'
+      },
       { status: 500 }
     );
   }
@@ -246,10 +241,10 @@ export async function DELETE(
     // Validate API key
     if (!validateApiKey(request)) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Unauthorized. Please provide a valid API key in X-API-Key header.' 
-        }, 
+        {
+          success: false,
+          error: 'Unauthorized. Please provide a valid API key in X-API-Key header.'
+        },
         { status: 401 }
       );
     }
@@ -262,10 +257,10 @@ export async function DELETE(
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Failed to delete request' 
-        }, 
+        {
+          success: false,
+          error: 'Failed to delete request'
+        },
         { status: 500 }
       );
     }
@@ -278,10 +273,10 @@ export async function DELETE(
   } catch (error) {
     console.error('Laravel API error:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Internal server error' 
-      }, 
+      {
+        success: false,
+        error: 'Internal server error'
+      },
       { status: 500 }
     );
   }

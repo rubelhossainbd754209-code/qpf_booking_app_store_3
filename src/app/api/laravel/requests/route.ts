@@ -51,41 +51,32 @@ export async function GET(request: NextRequest) {
     const fromDate = searchParams.get('from_date');
     const toDate = searchParams.get('to_date');
 
-    // Build query
-    let query = supabase
-      .from('repair_requests')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
+    // Fetch from local data
+    const allRequests = getRepairRequests();
 
-    // Apply filters
+    // Filter by status if provided
+    let filteredRequests = allRequests;
     if (status) {
-      query = query.eq('status', status);
+      filteredRequests = filteredRequests.filter(r => r.status === status);
     }
 
+    // Filter by dates
     if (fromDate) {
-      query = query.gte('created_at', fromDate);
+      const from = new Date(fromDate).getTime();
+      filteredRequests = filteredRequests.filter(r => new Date(r.created_at).getTime() >= from);
     }
 
     if (toDate) {
-      query = query.lte('created_at', toDate + 'T23:59:59.999Z');
+      const to = new Date(toDate + 'T23:59:59.999Z').getTime();
+      filteredRequests = filteredRequests.filter(r => new Date(r.created_at).getTime() <= to);
     }
 
-    const { data: requests, error, count } = await query;
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to fetch requests'
-        },
-        { status: 500 }
-      );
-    }
+    // Apply pagination
+    const requests = filteredRequests.slice(offset, offset + limit);
+    const totalCount = filteredRequests.length;
 
     // Transform data for Laravel consumption
-    const laravelFormattedRequests = requests?.map(request => ({
+    const laravelFormattedRequests = requests.map(request => ({
       // Primary identifiers
       id: request.id,
       request_id: request.id,
@@ -107,7 +98,7 @@ export async function GET(request: NextRequest) {
 
       // Timestamps
       created_at: request.created_at,
-      updated_at: request.updated_at || request.created_at,
+      updated_at: request.created_at,
 
       // Additional Laravel-friendly fields
       is_new: request.status === 'New',
@@ -121,12 +112,7 @@ export async function GET(request: NextRequest) {
       status_display: request.status,
       created_date: new Date(request.created_at).toISOString().split('T')[0],
       created_time: new Date(request.created_at).toLocaleTimeString(),
-    })) || [];
-
-    // Get total count for pagination
-    const { count: totalCount } = await supabase
-      .from('repair_requests')
-      .select('*', { count: 'exact', head: true });
+    }));
 
     return NextResponse.json({
       success: true,
@@ -208,51 +194,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Transform Laravel data to our database format
-    const requestData = {
-      customer_name: body.customer_name,
+    // Save to local data
+    const newRequest = createRepairRequest({
+      name: body.customer_name,
       phone: body.customer_phone,
-      email: body.customer_email || null,
-      address: body.customer_address || null,
+      email: body.customer_email,
+      address: body.customer_address,
       brand: body.device_brand,
-      device_type: body.device_type,
+      deviceType: body.device_type,
       model: body.device_model,
-      message: body.issue_description || null,
-      status: body.status || 'New'
-    };
-
-    const { data, error } = await supabase
-      .from('repair_requests')
-      .insert([requestData])
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Failed to create request'
-        },
-        { status: 500 }
-      );
-    }
+      message: body.issue_description
+    });
 
     // Return Laravel-formatted response
     const laravelFormattedRequest = {
-      id: data.id,
-      request_id: data.id,
-      customer_name: data.customer_name,
-      customer_phone: data.phone,
-      customer_email: data.email,
-      customer_address: data.address,
-      device_brand: data.brand,
-      device_type: data.device_type,
-      device_model: data.model,
-      issue_description: data.message,
-      status: data.status,
-      created_at: data.created_at,
-      updated_at: data.created_at,
+      id: newRequest.id,
+      request_id: newRequest.id,
+      customer_name: newRequest.customer_name,
+      customer_phone: newRequest.phone,
+      customer_email: newRequest.email,
+      customer_address: newRequest.address,
+      device_brand: newRequest.brand,
+      device_type: newRequest.deviceType,
+      device_model: newRequest.model,
+      issue_description: newRequest.message,
+      status: newRequest.status,
+      created_at: newRequest.created_at,
+      updated_at: newRequest.created_at,
     };
 
     return NextResponse.json({
