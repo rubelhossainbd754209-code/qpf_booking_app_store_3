@@ -1,21 +1,28 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { getAppSettings } from './settings'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+/**
+ * Get the current Supabase client based on dynamic settings
+ */
+export const getSupabaseClient = (): SupabaseClient | null => {
+  const settings = getAppSettings();
+  if (settings.supabaseUrl && settings.supabaseAnonKey) {
+    return createClient(settings.supabaseUrl, settings.supabaseAnonKey);
+  }
+  return null;
+};
 
-// Debug: Log Supabase configuration
-console.log('=== Supabase Configuration ===');
-console.log('SUPABASE_URL:', supabaseUrl ? supabaseUrl.substring(0, 50) + '...' : 'NOT SET');
-console.log('SUPABASE_ANON_KEY:', supabaseAnonKey ? 'SET (hidden)' : 'NOT SET');
-console.log('==============================');
+// Compatibility export (legacy support)
+// Note: This may not reflect real-time changes in a long-running process,
+// but for most serverless functions it will be re-evaluated.
+export const supabase = getSupabaseClient();
 
-export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
-
-// Helper to check if Supabase is configured
+/**
+ * Helper to check if Supabase is configured
+ */
 export const isSupabaseConfigured = () => {
-  return supabase !== null;
+  const settings = getAppSettings();
+  return !!(settings.supabaseUrl && settings.supabaseAnonKey);
 };
 
 // Types for our database tables

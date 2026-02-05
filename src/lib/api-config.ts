@@ -1,30 +1,41 @@
-// API Configuration for Laravel Integration
-// These values can be overridden via environment variables for different deployments
+import { getAppSettings } from './settings';
+
+// ============ DYNAMIC CONFIGURATION ============
+// These values are fetched dynamically from the settings persistence layer
+
+export const getDynamicSettings = () => getAppSettings();
 
 // ============ STORE IDENTIFICATION ============
-// Change these values when copying for different stores
-export const STORE_ID = process.env.NEXT_PUBLIC_STORE_ID || 'store-3';
-export const STORE_NAME = process.env.NEXT_PUBLIC_STORE_NAME || 'Quick Phone Fix N More - Germantown';
-export const STORE_CODE = process.env.NEXT_PUBLIC_STORE_CODE || 'QPF-S3';
+export const getStoreId = () => getAppSettings().storeId;
+export const getStoreName = () => getAppSettings().storeName;
+export const getStoreCode = () => getAppSettings().storeCode;
+
+// Compatibility constants (legacy)
+export const STORE_ID = getStoreId();
+export const STORE_NAME = getStoreName();
+export const STORE_CODE = getStoreCode();
 
 // ============ LARAVEL API CONFIGURATION ============
-// Laravel Backend API URL - Set this in Netlify environment variables
-export const LARAVEL_API_URL = process.env.NEXT_PUBLIC_LARAVEL_API_URL || 'http://localhost:8000/api';
+export const getLaravelApiUrl = () => getAppSettings().laravelApiUrl;
+export const getLaravelApiKey = () => getAppSettings().laravelApiKey;
 
-// Laravel API Key for authentication
-export const LARAVEL_API_KEY = process.env.NEXT_PUBLIC_LARAVEL_API_KEY || 'qpx-laravel-integration-2024';
+// Legacy constants
+export const LARAVEL_API_URL = getLaravelApiUrl();
+export const LARAVEL_API_KEY = getLaravelApiKey();
 
-// API Endpoints
-export const API_ENDPOINTS = {
-    // Booking endpoint - where the form data will be sent
-    BOOKINGS: `${LARAVEL_API_URL}/bookings`,
-
-    // Alternative endpoints if needed
-    REPAIR_REQUESTS: `${LARAVEL_API_URL}/repair-requests`,
-
-    // Stats endpoint
-    STATS: `${LARAVEL_API_URL}/stats`,
+// API Endpoints - Made dynamic
+export const getApiEndpoints = () => {
+    const settings = getAppSettings();
+    const baseUrl = settings.laravelApiUrl || 'http://localhost:8000/api';
+    return {
+        BOOKINGS: `${baseUrl}/bookings`,
+        REPAIR_REQUESTS: `${baseUrl}/repair-requests`,
+        STATS: `${baseUrl}/stats`,
+    };
 };
+
+// Legacy object support
+export const API_ENDPOINTS = getApiEndpoints();
 
 // Helper function to make API calls to Laravel
 export async function callLaravelAPI(

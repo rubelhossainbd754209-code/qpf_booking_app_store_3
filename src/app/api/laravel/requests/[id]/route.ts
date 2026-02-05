@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRepairRequest, updateRepairRequest, deleteRepairRequest } from '@/lib/data';
+import { getLaravelApiKey } from '@/lib/api-config';
 
 /**
  * Laravel Integration API for Individual Repair Request
@@ -8,12 +9,9 @@ import { getRepairRequest, updateRepairRequest, deleteRepairRequest } from '@/li
  * specifically designed for Laravel platform integration
  */
 
-// API Key validation
-const LARAVEL_API_KEY = process.env.LARAVEL_API_KEY || 'qpx-laravel-integration-2024';
-
 function validateApiKey(request: NextRequest): boolean {
   const apiKey = request.headers.get('X-API-Key') || request.headers.get('Authorization')?.replace('Bearer ', '');
-  return apiKey === LARAVEL_API_KEY;
+  return apiKey === getLaravelApiKey();
 }
 
 /**

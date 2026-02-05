@@ -13,24 +13,35 @@ import { LogoutButton } from "@/components/logout-button";
 export default function DashboardPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [storeName, setStoreName] = useState("Store-3");
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/auth/verify');
-        if (response.ok) {
+        // Check Auth
+        const authResponse = await fetch('/api/auth/verify');
+        if (authResponse.ok) {
           setIsAuthenticated(true);
         } else {
           router.push('/login');
+          return;
+        }
+
+        // Fetch Store Name
+        const settingsResponse = await fetch('/api/settings');
+        const settingsData = await settingsResponse.json();
+        if (settingsData.success) {
+          setStoreName(settingsData.settings.storeName || settingsData.settings.storeId || "Store-3");
         }
       } catch (error) {
+        console.error("Dashboard fetch error:", error);
         router.push('/login');
       } finally {
         setIsLoading(false);
       }
     };
-    checkAuth();
+    fetchData();
   }, [router]);
 
   if (isLoading) {
@@ -67,7 +78,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-8">
             <div>
               <h1 className="text-3xl font-bold leading-tight tracking-tighter md:text-4xl lg:leading-[1.1] font-headline">
-                Admin Dashboard <span className="text-red-500 font-normal text-xl md:text-2xl ml-2">— Store-3</span>
+                Admin Dashboard <span className="text-red-500 font-normal text-xl md:text-2xl ml-2">— {storeName}</span>
               </h1>
               <p className="max-w-[750px] text-lg text-muted-foreground sm:text-xl mt-2">
                 Manage repair requests and form configurations

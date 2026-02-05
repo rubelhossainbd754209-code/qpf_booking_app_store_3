@@ -3,7 +3,7 @@ import {
     getRepairRequests,
     createRepairRequest,
 } from '@/lib/data';
-import { LARAVEL_API_URL, LARAVEL_API_KEY, STORE_ID, STORE_NAME, STORE_CODE } from '@/lib/api-config';
+import { getLaravelApiUrl, getLaravelApiKey, getStoreId, getStoreName, getStoreCode } from '@/lib/api-config';
 
 // Flag to control whether to forward to Laravel API
 const FORWARD_TO_LARAVEL = process.env.NEXT_PUBLIC_FORWARD_TO_LARAVEL !== 'false';
@@ -64,12 +64,18 @@ export async function POST(request: NextRequest) {
         // Note: Supabase insertion DISABLED to prevent routing to Store 2
         console.log('Supabase insertion disabled for Store 3 isolation plan');
 
+        const storeId = getStoreId();
+        const storeName = getStoreName();
+        const storeCode = getStoreCode();
+        const laravelUrl = getLaravelApiUrl();
+        const laravelKey = getLaravelApiKey();
+
         // Transform data for Laravel API with Store identification
         const laravelData = {
             // Store identification
-            store_id: STORE_ID,
-            store_name: STORE_NAME,
-            store_code: STORE_CODE,
+            store_id: storeId,
+            store_name: storeName,
+            store_code: storeCode,
 
             // Customer information
             customer_name: body.name,
@@ -93,16 +99,16 @@ export async function POST(request: NextRequest) {
         let laravelSuccess = false;
 
         // Forward to Laravel API if enabled
-        if (FORWARD_TO_LARAVEL && LARAVEL_API_URL) {
+        if (FORWARD_TO_LARAVEL && laravelUrl) {
             try {
-                console.log('Forwarding booking to Store 3 Laravel API:', `${LARAVEL_API_URL}/bookings`);
+                console.log('Forwarding booking to Store 3 Laravel API:', `${laravelUrl}/bookings`);
 
-                const response = await fetch(`${LARAVEL_API_URL}/bookings`, {
+                const response = await fetch(`${laravelUrl}/bookings`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
-                        'X-API-Key': LARAVEL_API_KEY,
+                        'X-API-Key': laravelKey,
                     },
                     body: JSON.stringify(laravelData),
                 });

@@ -1,0 +1,9 @@
+{
+  "supabaseUrl": "",
+  "supabaseAnonKey": "",
+  "laravelApiUrl": "https://store3.quickphonefix.mandrillcart.com/api",
+  "laravelApiKey": "qpx-laravel-integration-2024",
+  "storeId": "store-3",
+  "storeName": "Quick Phone Fix N More - Germantown",
+  "storeCode": "QPF-S3"
+}
