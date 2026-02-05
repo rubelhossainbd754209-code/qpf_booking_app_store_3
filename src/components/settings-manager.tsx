@@ -11,6 +11,7 @@ import { Save, RefreshCw, Database, Server, Smartphone } from "lucide-react";
 export function SettingsManager() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [isTestingSupabase, setIsTestingSupabase] = useState(false);
     const [settings, setSettings] = useState({
         supabaseUrl: "",
         supabaseAnonKey: "",
@@ -41,6 +42,52 @@ export function SettingsManager() {
             });
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const handleTestSupabase = async () => {
+        if (!settings.supabaseUrl || !settings.supabaseAnonKey) {
+            toast({
+                title: "Validation Error",
+                description: "Please enter both Supabase URL and Anon Key.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        setIsTestingSupabase(true);
+        try {
+            const response = await fetch("/api/settings/test-supabase", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    supabaseUrl: settings.supabaseUrl,
+                    supabaseAnonKey: settings.supabaseAnonKey,
+                }),
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                toast({
+                    title: "Connection Successful",
+                    description: data.message,
+                    variant: data.tableMissing ? "default" : "default",
+                });
+            } else {
+                toast({
+                    title: "Connection Failed",
+                    description: data.error || "Could not connect to Supabase.",
+                    variant: "destructive",
+                });
+            }
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "An unexpected error occurred during the test.",
+                variant: "destructive",
+            });
+        } finally {
+            setIsTestingSupabase(false);
         }
     };
 
@@ -112,6 +159,20 @@ export function SettingsManager() {
                                 onChange={(e) => setSettings({ ...settings, supabaseAnonKey: e.target.value })}
                             />
                         </div>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full mt-2"
+                            onClick={handleTestSupabase}
+                            disabled={isTestingSupabase}
+                        >
+                            {isTestingSupabase ? (
+                                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                            )}
+                            Test Connection
+                        </Button>
                     </CardContent>
                 </Card>
 

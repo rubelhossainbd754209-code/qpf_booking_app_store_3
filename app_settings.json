@@ -1,6 +1,6 @@
 {
-  "supabaseUrl": "",
-  "supabaseAnonKey": "",
+  "supabaseUrl": "https://uwqqkwwstgrbbbrpacnc.supabase.co",
+  "supabaseAnonKey": "sb_publishable_60U2DM7nLp4wp5E1-yFqlA_Crga0cDN",
   "laravelApiUrl": "https://store3.quickphonefix.mandrillcart.com/api",
   "laravelApiKey": "qpx-laravel-integration-2024",
   "storeId": "store-3",
