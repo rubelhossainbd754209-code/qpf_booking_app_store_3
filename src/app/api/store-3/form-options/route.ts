@@ -9,9 +9,27 @@ import {
     removeModel
 } from '@/lib/data';
 
+// CORS headers for cross-origin requests
+const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key, Accept',
+    'Access-Control-Max-Age': '86400',
+};
+
+// Helper function to add CORS headers to response
+function corsResponse(data: any, status: number = 200) {
+    return NextResponse.json(data, { status, headers: corsHeaders });
+}
+
+// Handle OPTIONS preflight request
+export async function OPTIONS() {
+    return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
 export async function GET() {
     const formOptions = getFormOptions();
-    return NextResponse.json({ formOptions });
+    return corsResponse({ formOptions });
 }
 
 export async function POST(request: NextRequest) {
@@ -35,9 +53,9 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Invalid operation type' }, { status: 400 });
         }
 
-        return NextResponse.json({ formOptions: updatedOptions });
+        return corsResponse({ formOptions: updatedOptions });
     } catch (error) {
-        return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+        return corsResponse({ error: 'Failed to process request' }, 500);
     }
 }
 
@@ -59,11 +77,11 @@ export async function DELETE(request: NextRequest) {
                 updatedOptions = removeModel(data.brand, data.deviceType, data.model);
                 break;
             default:
-                return NextResponse.json({ error: 'Invalid operation type' }, { status: 400 });
+                return corsResponse({ error: 'Invalid operation type' }, 400);
         }
 
-        return NextResponse.json({ formOptions: updatedOptions });
+        return corsResponse({ formOptions: updatedOptions });
     } catch (error) {
-        return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+        return corsResponse({ error: 'Failed to process request' }, 500);
     }
 }

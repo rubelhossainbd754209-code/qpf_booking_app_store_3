@@ -165,3 +165,33 @@ export async function POST(request: NextRequest) {
         return corsResponse({ error: 'Failed to create request' }, 500);
     }
 }
+
+export async function DELETE(request: NextRequest) {
+    try {
+        const body = await request.json();
+        const { ids } = body;
+
+        if (!ids || !Array.isArray(ids)) {
+            return corsResponse({ error: 'Invalid IDs provided' }, 400);
+        }
+
+        console.log('Bulk deleting requests for Store 3:', ids);
+
+        const { deleteRepairRequest } = await import('@/lib/data');
+        let deletedCount = 0;
+
+        for (const id of ids) {
+            const success = deleteRepairRequest(id);
+            if (success) deletedCount++;
+        }
+
+        return corsResponse({
+            success: true,
+            message: `Successfully deleted ${deletedCount} request(s)`,
+            deletedCount
+        });
+    } catch (error) {
+        console.error('API error:', error);
+        return corsResponse({ error: 'Failed to delete requests' }, 500);
+    }
+}

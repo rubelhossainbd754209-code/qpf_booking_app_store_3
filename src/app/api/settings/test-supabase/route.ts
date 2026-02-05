@@ -24,12 +24,17 @@ export async function POST(request: NextRequest) {
             .limit(1);
 
         if (error) {
-            // If the error is 'relation does not exist', the connection is actually OK, 
-            // but the table is missing.
-            if (error.code === 'PGRST116' || error.message.includes('relation "repair_requests" does not exist')) {
+            // If the error refers to the table not being found, the connection is actually OK!
+            const isTableMissing =
+                error.code === 'PGRST116' ||
+                error.message.includes('relation "repair_requests" does not exist') ||
+                error.message.includes('Could not find the table') ||
+                error.message.includes('schema cache');
+
+            if (isTableMissing) {
                 return NextResponse.json({
                     success: true,
-                    message: 'Connection successful, but "repair_requests" table not found. Please run the setup script.',
+                    message: 'কানেকশন সফল হয়েছে (Connection Successful)! কিন্তু ডাটাবেসে "repair_requests" টেবিলটি পাওয়া যায়নি। অনুগ্রহ করে সেটআপ স্ক্রিপ্টটি রান করুন।',
                     tableMissing: true
                 });
             }
