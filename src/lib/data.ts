@@ -300,9 +300,15 @@ export function updateRepairRequestStatus(id: string, status: RepairRequest['sta
 
 // Delete repair request
 export function deleteRepairRequest(id: string) {
+  console.log(`[deleteRepairRequest] Looking for ID: "${id}"`);
+  console.log(`[deleteRepairRequest] Available IDs:`, repairRequestsData.map(r => r.id));
+
   const index = repairRequestsData.findIndex(r => r.id === id);
+  console.log(`[deleteRepairRequest] Found at index: ${index}`);
+
   if (index !== -1) {
-    repairRequestsData.splice(index, 1);
+    const removed = repairRequestsData.splice(index, 1);
+    console.log(`[deleteRepairRequest] Removed:`, removed[0]?.id);
     return true;
   }
   return false;
