@@ -6,14 +6,113 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Save, RefreshCw, Database, Server, Smartphone, Eye, EyeOff, Copy } from "lucide-react";
+import { Save, RefreshCw, Database, Server, Smartphone, Eye, EyeOff, Copy, FileCode, ChevronDown, ChevronUp } from "lucide-react";
+
+// SQL Setup Script for Supabase
+const SUPABASE_SQL_SCRIPT = `-- =============================================
+-- 📦 Supabase Setup Script for Booking App
+-- =============================================
+-- Run this script in your Supabase SQL Editor
+-- Dashboard > SQL Editor > New Query
+
+-- 1️⃣ Create repair_requests table
+CREATE TABLE IF NOT EXISTS repair_requests (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    customer_name VARCHAR(255) NOT NULL,
+    phone VARCHAR(50) NOT NULL,
+    email VARCHAR(255),
+    address TEXT,
+    brand VARCHAR(100) NOT NULL,
+    device_type VARCHAR(100) NOT NULL,
+    model VARCHAR(100) NOT NULL,
+    message TEXT,
+    status VARCHAR(50) DEFAULT 'New',
+    store_id VARCHAR(50),
+    store_name VARCHAR(255),
+    store_code VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 2️⃣ Create form_options table (for brands, device types, models)
+CREATE TABLE IF NOT EXISTS form_options (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    type VARCHAR(50) NOT NULL, -- 'brand', 'device_type', 'model'
+    value VARCHAR(255) NOT NULL,
+    brand VARCHAR(100), -- parent brand for device_type/model
+    device_type VARCHAR(100), -- parent device_type for model
+    store_id VARCHAR(50),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 3️⃣ Enable Row Level Security (RLS)
+ALTER TABLE repair_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE form_options ENABLE ROW LEVEL SECURITY;
+
+-- 4️⃣ Create policies for public access (using anon key)
+-- Allow anyone to read repair requests
+CREATE POLICY "Allow public read repair_requests" ON repair_requests
+    FOR SELECT USING (true);
+
+-- Allow anyone to insert repair requests
+CREATE POLICY "Allow public insert repair_requests" ON repair_requests
+    FOR INSERT WITH CHECK (true);
+
+-- Allow anyone to update repair requests
+CREATE POLICY "Allow public update repair_requests" ON repair_requests
+    FOR UPDATE USING (true);
+
+-- Allow anyone to delete repair requests
+CREATE POLICY "Allow public delete repair_requests" ON repair_requests
+    FOR DELETE USING (true);
+
+-- Allow anyone to read form options
+CREATE POLICY "Allow public read form_options" ON form_options
+    FOR SELECT USING (true);
+
+-- Allow anyone to insert form options
+CREATE POLICY "Allow public insert form_options" ON form_options
+    FOR INSERT WITH CHECK (true);
+
+-- Allow anyone to delete form options
+CREATE POLICY "Allow public delete form_options" ON form_options
+    FOR DELETE USING (true);
+
+-- 5️⃣ Create indexes for better performance
+CREATE INDEX IF NOT EXISTS idx_repair_requests_status ON repair_requests(status);
+CREATE INDEX IF NOT EXISTS idx_repair_requests_store_id ON repair_requests(store_id);
+CREATE INDEX IF NOT EXISTS idx_repair_requests_created_at ON repair_requests(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_form_options_type ON form_options(type);
+CREATE INDEX IF NOT EXISTS idx_form_options_brand ON form_options(brand);
+
+-- 6️⃣ Insert default form options (optional)
+INSERT INTO form_options (type, value) VALUES
+    ('brand', 'Apple'),
+    ('brand', 'Samsung'),
+    ('brand', 'Google'),
+    ('brand', 'OnePlus'),
+    ('brand', 'Xiaomi')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO form_options (type, value, brand) VALUES
+    ('device_type', 'iPhone', 'Apple'),
+    ('device_type', 'iPad', 'Apple'),
+    ('device_type', 'MacBook', 'Apple'),
+    ('device_type', 'Galaxy S Series', 'Samsung'),
+    ('device_type', 'Galaxy A Series', 'Samsung'),
+    ('device_type', 'Pixel Phone', 'Google')
+ON CONFLICT DO NOTHING;
+
+-- ✅ Setup Complete!
+-- Your Supabase database is now ready for the Booking App.
+`;
 
 export function SettingsManager() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isTestingSupabase, setIsTestingSupabase] = useState(false);
     const [showSupabaseKey, setShowSupabaseKey] = useState(false);
-    const [showLaravelKey, setShowLaravelKey] = useState(false);
+    const [showSqlScript, setShowSqlScript] = useState(false);
     const [settings, setSettings] = useState({
         supabaseUrl: "",
         supabaseAnonKey: "",
@@ -119,6 +218,11 @@ export function SettingsManager() {
         }
     };
 
+    const copySqlScript = () => {
+        navigator.clipboard.writeText(SUPABASE_SQL_SCRIPT);
+        toast({ title: "Copied!", description: "SQL script copied to clipboard" });
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center p-12">
@@ -153,13 +257,37 @@ export function SettingsManager() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="supabaseKey">Anon Key</Label>
-                            <Input
-                                id="supabaseKey"
-                                type="password"
-                                placeholder="Paste your anon key here"
-                                value={settings.supabaseAnonKey}
-                                onChange={(e) => setSettings({ ...settings, supabaseAnonKey: e.target.value })}
-                            />
+                            <div className="flex gap-2">
+                                <Input
+                                    id="supabaseKey"
+                                    type={showSupabaseKey ? "text" : "password"}
+                                    placeholder="Paste your anon key here"
+                                    value={settings.supabaseAnonKey}
+                                    onChange={(e) => setSettings({ ...settings, supabaseAnonKey: e.target.value })}
+                                    className="flex-1"
+                                />
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    type="button"
+                                    onClick={() => setShowSupabaseKey(!showSupabaseKey)}
+                                    title={showSupabaseKey ? "Hide Key" : "Show Key"}
+                                >
+                                    {showSupabaseKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    type="button"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(settings.supabaseAnonKey);
+                                        toast({ title: "Copied!", description: "Anon Key copied to clipboard" });
+                                    }}
+                                    title="Copy Key"
+                                >
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                         <Button
                             variant="outline"
@@ -241,61 +369,58 @@ export function SettingsManager() {
                     </CardContent>
                 </Card>
 
-                {/* Laravel Settings */}
-                <Card>
+                {/* SQL Setup Script */}
+                <Card className="md:col-span-2 border-2 border-blue-200 bg-blue-50">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-red-500">
-                            <Server className="h-5 w-5" />
-                            Laravel API Integration
+                        <CardTitle className="flex items-center gap-2 text-blue-700">
+                            <FileCode className="h-5 w-5" />
+                            📋 Supabase SQL Setup Script
                         </CardTitle>
                         <CardDescription>
-                            Configure the connection to your Laravel backend.
+                            Run this SQL in your new Supabase project to create required tables and permissions.
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="laravelUrl">Laravel API Base URL</Label>
-                            <Input
-                                id="laravelUrl"
-                                placeholder="https://your-laravel-app.com/api"
-                                value={settings.laravelApiUrl}
-                                onChange={(e) => setSettings({ ...settings, laravelApiUrl: e.target.value })}
-                            />
+                        <div className="flex gap-2">
+                            <Button
+                                variant="outline"
+                                className="border-blue-300 hover:bg-blue-100 text-blue-700"
+                                onClick={() => setShowSqlScript(!showSqlScript)}
+                            >
+                                {showSqlScript ? (
+                                    <>
+                                        <ChevronUp className="mr-2 h-4 w-4" />
+                                        Hide SQL Script
+                                    </>
+                                ) : (
+                                    <>
+                                        <ChevronDown className="mr-2 h-4 w-4" />
+                                        View SQL Script
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                className="border-blue-300 hover:bg-blue-100 text-blue-700"
+                                onClick={copySqlScript}
+                            >
+                                <Copy className="mr-2 h-4 w-4" />
+                                Copy SQL Script
+                            </Button>
                         </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="laravelKey">API Key (X-API-Key)</Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    id="laravelKey"
-                                    type={showLaravelKey ? "text" : "password"}
-                                    placeholder="Your Laravel API Key"
-                                    value={settings.laravelApiKey}
-                                    onChange={(e) => setSettings({ ...settings, laravelApiKey: e.target.value })}
-                                    className="flex-1"
-                                />
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    type="button"
-                                    onClick={() => setShowLaravelKey(!showLaravelKey)}
-                                    title={showLaravelKey ? "Hide API Key" : "Show API Key"}
-                                >
-                                    {showLaravelKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    type="button"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(settings.laravelApiKey);
-                                        toast({ title: "Copied!", description: "API Key copied to clipboard" });
-                                    }}
-                                    title="Copy API Key"
-                                >
-                                    <Copy className="h-4 w-4" />
-                                </Button>
+
+                        {showSqlScript && (
+                            <div className="mt-4">
+                                <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto max-h-96 overflow-y-auto">
+                                    <pre className="text-green-400 text-sm font-mono whitespace-pre">
+                                        {SUPABASE_SQL_SCRIPT}
+                                    </pre>
+                                </div>
+                                <p className="text-xs text-blue-600 mt-2">
+                                    💡 Go to Supabase Dashboard → SQL Editor → New Query → Paste this script → Run
+                                </p>
                             </div>
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
 
