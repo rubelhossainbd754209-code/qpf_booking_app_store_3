@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-    getRepairRequest,
-    updateRepairRequest,
-    deleteRepairRequest
-} from '@/lib/data';
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -31,14 +27,27 @@ export async function GET(
         const { id } = await params;
         console.log(`[GET] Fetching request with ID: ${id}`);
 
-        const repairRequest = getRepairRequest(id);
+        if (!isSupabaseConfigured()) {
+            return corsResponse({ error: 'Supabase not configured' }, 500);
+        }
 
-        if (!repairRequest) {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            return corsResponse({ error: 'Failed to connect to database' }, 500);
+        }
+
+        const { data, error } = await supabase
+            .from('repair_requests')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error || !data) {
             console.log(`[GET] Request not found: ${id}`);
             return corsResponse({ error: 'Request not found' }, 404);
         }
 
-        return corsResponse({ success: true, request: repairRequest });
+        return corsResponse({ success: true, request: data });
     } catch (error) {
         console.error('API error:', error);
         return corsResponse({ error: 'Failed to fetch request' }, 500);
@@ -53,16 +62,49 @@ export async function PATCH(
         const { id } = await params;
         const body = await request.json();
 
-        console.log(`[PATCH] Updating request ${id} for Store 3:`, body);
+        console.log(`[PATCH] Updating request ${id}:`, body);
 
-        const updated = updateRepairRequest(id, body);
+        if (!isSupabaseConfigured()) {
+            return corsResponse({ error: 'Supabase not configured' }, 500);
+        }
 
-        if (!updated) {
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            return corsResponse({ error: 'Failed to connect to database' }, 500);
+        }
+
+        // Build update object
+        const updateData: any = {};
+        if (body.status) updateData.status = body.status;
+        if (body.customer_name) updateData.customer_name = body.customer_name;
+        if (body.phone) updateData.phone = body.phone;
+        if (body.email !== undefined) updateData.email = body.email;
+        if (body.address !== undefined) updateData.address = body.address;
+        if (body.brand) updateData.brand = body.brand;
+        if (body.device_type) updateData.device_type = body.device_type;
+        if (body.model) updateData.model = body.model;
+        if (body.message !== undefined) updateData.message = body.message;
+        updateData.updated_at = new Date().toISOString();
+
+        const { data, error } = await supabase
+            .from('repair_requests')
+            .update(updateData)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error(`[PATCH] Supabase error:`, error);
+            return corsResponse({ error: 'Failed to update request', details: error.message }, 500);
+        }
+
+        if (!data) {
             console.log(`[PATCH] Request not found: ${id}`);
             return corsResponse({ error: 'Request not found' }, 404);
         }
 
-        return corsResponse({ success: true, request: updated });
+        console.log(`[PATCH] Successfully updated: ${id}`);
+        return corsResponse({ success: true, request: data });
     } catch (error) {
         console.error('API error:', error);
         return corsResponse({ error: 'Failed to update request' }, 500);
@@ -77,14 +119,26 @@ export async function DELETE(
         const { id } = await params;
         console.log(`[DELETE] Attempting to delete request with ID: ${id}`);
 
-        const success = deleteRepairRequest(id);
-        console.log(`[DELETE] Delete result for ${id}: ${success}`);
-
-        if (!success) {
-            console.log(`[DELETE] Request not found or failed to delete: ${id}`);
-            return corsResponse({ error: 'Request not found or failed to delete' }, 404);
+        if (!isSupabaseConfigured()) {
+            return corsResponse({ error: 'Supabase not configured' }, 500);
         }
 
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            return corsResponse({ error: 'Failed to connect to database' }, 500);
+        }
+
+        const { error } = await supabase
+            .from('repair_requests')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error(`[DELETE] Supabase error:`, error);
+            return corsResponse({ error: 'Failed to delete request', details: error.message }, 500);
+        }
+
+        console.log(`[DELETE] Successfully deleted: ${id}`);
         return corsResponse({ success: true, message: 'Request deleted successfully' });
     } catch (error) {
         console.error('API error:', error);

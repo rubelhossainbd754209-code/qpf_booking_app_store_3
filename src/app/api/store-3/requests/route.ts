@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-    getRepairRequests,
-    createRepairRequest,
-} from '@/lib/data';
+import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { getLaravelApiUrl, getLaravelApiKey, getStoreId, getStoreName, getStoreCode } from '@/lib/api-config';
 
 // Flag to control whether to forward to Laravel API
@@ -28,12 +25,30 @@ export async function OPTIONS() {
 
 export async function GET() {
     try {
-        // For Store 3, we don't fetch from Supabase (it's legacy)
-        // We only fetch from local data as fallback
-        const requests = getRepairRequests();
+        // Check if Supabase is configured
+        if (!isSupabaseConfigured()) {
+            console.log('Supabase not configured, returning empty array');
+            return corsResponse({ requests: [] });
+        }
+
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            return corsResponse({ requests: [] });
+        }
+
+        // Fetch from Supabase
+        const { data, error } = await supabase
+            .from('repair_requests')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Supabase fetch error:', error);
+            return corsResponse({ error: 'Failed to fetch from database', details: error.message }, 500);
+        }
 
         // Transform data to match frontend expectations
-        const transformedRequests = requests.map((request) => ({
+        const transformedRequests = (data || []).map((request: any) => ({
             id: request.id,
             customer: request.customer_name,
             brand: request.brand,
@@ -44,7 +59,7 @@ export async function GET() {
             phone: request.phone,
             email: request.email,
             address: request.address,
-            status: request.status,
+            status: request.status || 'New',
             createdAt: request.created_at,
             uniqueKey: `${request.id}-${request.created_at}`,
         }));
@@ -59,16 +74,50 @@ export async function GET() {
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
-        console.log('Received booking data for Store 3:', body);
-
-        // Note: Supabase insertion DISABLED to prevent routing to Store 2
-        console.log('Supabase insertion disabled for Store 3 isolation plan');
+        console.log('Received booking data:', body);
 
         const storeId = getStoreId();
         const storeName = getStoreName();
         const storeCode = getStoreCode();
         const laravelUrl = getLaravelApiUrl();
         const laravelKey = getLaravelApiKey();
+
+        // Check if Supabase is configured
+        let supabaseRecord = null;
+        let supabaseSuccess = false;
+
+        if (isSupabaseConfigured()) {
+            const supabase = getSupabaseClient();
+            if (supabase) {
+                // Insert into Supabase
+                const { data, error } = await supabase
+                    .from('repair_requests')
+                    .insert({
+                        customer_name: body.name,
+                        phone: body.phone,
+                        email: body.email || null,
+                        address: body.address || null,
+                        brand: body.brand,
+                        device_type: body.deviceType,
+                        model: body.model,
+                        message: body.message || null,
+                        status: 'New',
+                        store_id: storeId,
+                        store_name: storeName,
+                        store_code: storeCode,
+                    })
+                    .select()
+                    .single();
+
+                if (error) {
+                    console.error('Supabase insert error:', error);
+                } else {
+                    supabaseRecord = data;
+                    supabaseSuccess = true;
+                    console.log('✅ Successfully saved to Supabase:', data.id);
+                }
+            }
+        }
 
         // Transform data for Laravel API with Store identification
         const laravelData = {
@@ -101,7 +150,7 @@ export async function POST(request: NextRequest) {
         // Forward to Laravel API if enabled
         if (FORWARD_TO_LARAVEL && laravelUrl) {
             try {
-                console.log('Forwarding booking to Store 3 Laravel API:', `${laravelUrl}/bookings`);
+                console.log('Forwarding booking to Laravel API:', `${laravelUrl}/bookings`);
 
                 const response = await fetch(`${laravelUrl}/bookings`, {
                     method: 'POST',
@@ -117,32 +166,18 @@ export async function POST(request: NextRequest) {
                 laravelSuccess = response.ok;
 
                 if (!laravelSuccess) {
-                    console.error('❌ Store 3 Laravel API Error:', laravelResponse);
+                    console.error('❌ Laravel API Error:', laravelResponse);
                 } else {
-                    console.log('✅ Successfully forwarded to Store 3 Laravel:', laravelResponse);
+                    console.log('✅ Successfully forwarded to Laravel:', laravelResponse);
                 }
             } catch (laravelError) {
-                console.error('❌ Failed to forward to Store 3 Laravel API:', laravelError);
+                console.error('❌ Failed to forward to Laravel API:', laravelError);
             }
-        } else {
-            console.warn('⚠️ Forwarding skipped: FORWARD_TO_LARAVEL is false or LARAVEL_API_URL is missing');
         }
-
-        // Always create a local fallback record for tracking
-        const newRequest = createRepairRequest({
-            name: body.name,
-            phone: body.phone,
-            email: body.email,
-            address: body.address,
-            brand: body.brand,
-            deviceType: body.deviceType,
-            model: body.model,
-            message: body.message
-        });
 
         // Transform response for frontend
         const transformedRequest = {
-            id: newRequest.id,
+            id: supabaseRecord?.id || `temp-${Date.now()}`,
             customer: body.name,
             brand: body.brand,
             deviceType: body.deviceType,
@@ -153,8 +188,8 @@ export async function POST(request: NextRequest) {
             email: body.email,
             address: body.address,
             status: 'New',
-            createdAt: newRequest.created_at,
-            supabaseSynced: false, // Disabled by design
+            createdAt: supabaseRecord?.created_at || new Date().toISOString(),
+            supabaseSynced: supabaseSuccess,
             laravelSynced: laravelSuccess,
             laravelResponse: laravelResponse,
         };
@@ -175,20 +210,31 @@ export async function DELETE(request: NextRequest) {
             return corsResponse({ error: 'Invalid IDs provided' }, 400);
         }
 
-        console.log('Bulk deleting requests for Store 3:', ids);
+        console.log('Bulk deleting requests:', ids);
 
-        const { deleteRepairRequest } = await import('@/lib/data');
-        let deletedCount = 0;
+        if (!isSupabaseConfigured()) {
+            return corsResponse({ error: 'Supabase not configured' }, 500);
+        }
 
-        for (const id of ids) {
-            const success = deleteRepairRequest(id);
-            if (success) deletedCount++;
+        const supabase = getSupabaseClient();
+        if (!supabase) {
+            return corsResponse({ error: 'Failed to connect to database' }, 500);
+        }
+
+        const { error } = await supabase
+            .from('repair_requests')
+            .delete()
+            .in('id', ids);
+
+        if (error) {
+            console.error('Supabase delete error:', error);
+            return corsResponse({ error: 'Failed to delete from database', details: error.message }, 500);
         }
 
         return corsResponse({
             success: true,
-            message: `Successfully deleted ${deletedCount} request(s)`,
-            deletedCount
+            message: `Successfully deleted ${ids.length} request(s)`,
+            deletedCount: ids.length
         });
     } catch (error) {
         console.error('API error:', error);
