@@ -178,6 +178,69 @@ export function SettingsManager() {
                     </CardContent>
                 </Card>
 
+                {/* Your Booking API - Dynamic URL for Laravel */}
+                <Card className="border-2 border-green-200 bg-green-50">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2 text-green-700">
+                            <Server className="h-5 w-5" />
+                            📡 Your Booking API for Laravel
+                        </CardTitle>
+                        <CardDescription>
+                            Copy this URL and API Key to configure in your Laravel system.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label className="text-green-700 font-semibold">Booking API URL</Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    readOnly
+                                    value={typeof window !== 'undefined' ? `${window.location.origin}/api/laravel/requests` : ''}
+                                    className="bg-white border-green-300"
+                                />
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="border-green-300 hover:bg-green-100"
+                                    onClick={() => {
+                                        const url = `${window.location.origin}/api/laravel/requests`;
+                                        navigator.clipboard.writeText(url);
+                                        toast({ title: "Copied!", description: "API URL copied to clipboard" });
+                                    }}
+                                >
+                                    <Copy className="h-4 w-4 text-green-700" />
+                                </Button>
+                            </div>
+                            <p className="text-xs text-green-600">
+                                {typeof window !== 'undefined' && window.location.hostname === 'localhost'
+                                    ? "🖥️ Local Development Mode - Only accessible on your PC"
+                                    : "🌐 Live Mode - Accessible from anywhere"}
+                            </p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label className="text-green-700 font-semibold">API Key (for Laravel X-API-Key header)</Label>
+                            <div className="flex gap-2">
+                                <Input
+                                    readOnly
+                                    value={settings.laravelApiKey}
+                                    className="bg-white border-green-300"
+                                />
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="border-green-300 hover:bg-green-100"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(settings.laravelApiKey);
+                                        toast({ title: "Copied!", description: "API Key copied to clipboard" });
+                                    }}
+                                >
+                                    <Copy className="h-4 w-4 text-green-700" />
+                                </Button>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 {/* Laravel Settings */}
                 <Card>
                     <CardHeader>
