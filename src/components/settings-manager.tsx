@@ -15,7 +15,30 @@ const SUPABASE_SQL_SCRIPT = `-- =============================================
 -- Run this script in your Supabase SQL Editor
 -- Dashboard > SQL Editor > New Query
 
--- 1️⃣ Create repair_requests table
+-- ⚠️ IMPORTANT: This script works for BOTH:
+-- 1. New installations (creates tables from scratch)
+-- 2. Existing tables (adds missing columns)
+
+-- ============================================
+-- 🔧 STEP 1: Add missing columns to existing tables
+-- ============================================
+-- (Run this FIRST if you have existing tables)
+
+ALTER TABLE IF EXISTS repair_requests 
+ADD COLUMN IF NOT EXISTS store_id VARCHAR(50);
+
+ALTER TABLE IF EXISTS repair_requests
+ADD COLUMN IF NOT EXISTS store_name VARCHAR(255);
+
+ALTER TABLE IF EXISTS repair_requests
+ADD COLUMN IF NOT EXISTS store_code VARCHAR(50);
+
+ALTER TABLE IF EXISTS repair_requests
+ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+
+-- ============================================
+-- 1️⃣ Create repair_requests table (if not exists)
+-- ============================================
 CREATE TABLE IF NOT EXISTS repair_requests (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     customer_name VARCHAR(255) NOT NULL,
@@ -34,7 +57,9 @@ CREATE TABLE IF NOT EXISTS repair_requests (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- 2️⃣ Create form_options table (for brands, device types, models)
+-- ============================================
+-- 2️⃣ Create form_options table
+-- ============================================
 CREATE TABLE IF NOT EXISTS form_options (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     type VARCHAR(50) NOT NULL, -- 'brand', 'device_type', 'model'
@@ -45,47 +70,57 @@ CREATE TABLE IF NOT EXISTS form_options (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- ============================================
 -- 3️⃣ Enable Row Level Security (RLS)
+-- ============================================
 ALTER TABLE repair_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE form_options ENABLE ROW LEVEL SECURITY;
 
--- 4️⃣ Create policies for public access (using anon key)
--- Allow anyone to read repair requests
+-- ============================================
+-- 4️⃣ Create policies (DROP first to avoid conflicts)
+-- ============================================
+DROP POLICY IF EXISTS "Allow public read repair_requests" ON repair_requests;
+DROP POLICY IF EXISTS "Allow public insert repair_requests" ON repair_requests;
+DROP POLICY IF EXISTS "Allow public update repair_requests" ON repair_requests;
+DROP POLICY IF EXISTS "Allow public delete repair_requests" ON repair_requests;
+DROP POLICY IF EXISTS "Allow public read form_options" ON form_options;
+DROP POLICY IF EXISTS "Allow public insert form_options" ON form_options;
+DROP POLICY IF EXISTS "Allow public delete form_options" ON form_options;
+
+-- Create fresh policies
 CREATE POLICY "Allow public read repair_requests" ON repair_requests
     FOR SELECT USING (true);
 
--- Allow anyone to insert repair requests
 CREATE POLICY "Allow public insert repair_requests" ON repair_requests
     FOR INSERT WITH CHECK (true);
 
--- Allow anyone to update repair requests
 CREATE POLICY "Allow public update repair_requests" ON repair_requests
     FOR UPDATE USING (true);
 
--- Allow anyone to delete repair requests
 CREATE POLICY "Allow public delete repair_requests" ON repair_requests
     FOR DELETE USING (true);
 
--- Allow anyone to read form options
 CREATE POLICY "Allow public read form_options" ON form_options
     FOR SELECT USING (true);
 
--- Allow anyone to insert form options
 CREATE POLICY "Allow public insert form_options" ON form_options
     FOR INSERT WITH CHECK (true);
 
--- Allow anyone to delete form options
 CREATE POLICY "Allow public delete form_options" ON form_options
     FOR DELETE USING (true);
 
+-- ============================================
 -- 5️⃣ Create indexes for better performance
+-- ============================================
 CREATE INDEX IF NOT EXISTS idx_repair_requests_status ON repair_requests(status);
 CREATE INDEX IF NOT EXISTS idx_repair_requests_store_id ON repair_requests(store_id);
 CREATE INDEX IF NOT EXISTS idx_repair_requests_created_at ON repair_requests(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_form_options_type ON form_options(type);
 CREATE INDEX IF NOT EXISTS idx_form_options_brand ON form_options(brand);
 
+-- ============================================
 -- 6️⃣ Insert default form options (optional)
+-- ============================================
 INSERT INTO form_options (type, value) VALUES
     ('brand', 'Apple'),
     ('brand', 'Samsung'),
