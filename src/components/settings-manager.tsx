@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
-import { Save, RefreshCw, Database, Server, Smartphone } from "lucide-react";
+import { Save, RefreshCw, Database, Server, Smartphone, Eye, EyeOff, Copy } from "lucide-react";
 
 export function SettingsManager() {
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isTestingSupabase, setIsTestingSupabase] = useState(false);
+    const [showSupabaseKey, setShowSupabaseKey] = useState(false);
+    const [showLaravelKey, setShowLaravelKey] = useState(false);
     const [settings, setSettings] = useState({
         supabaseUrl: "",
         supabaseAnonKey: "",
@@ -199,13 +201,37 @@ export function SettingsManager() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="laravelKey">API Key (X-API-Key)</Label>
-                            <Input
-                                id="laravelKey"
-                                type="password"
-                                placeholder="Your Laravel API Key"
-                                value={settings.laravelApiKey}
-                                onChange={(e) => setSettings({ ...settings, laravelApiKey: e.target.value })}
-                            />
+                            <div className="flex gap-2">
+                                <Input
+                                    id="laravelKey"
+                                    type={showLaravelKey ? "text" : "password"}
+                                    placeholder="Your Laravel API Key"
+                                    value={settings.laravelApiKey}
+                                    onChange={(e) => setSettings({ ...settings, laravelApiKey: e.target.value })}
+                                    className="flex-1"
+                                />
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    type="button"
+                                    onClick={() => setShowLaravelKey(!showLaravelKey)}
+                                    title={showLaravelKey ? "Hide API Key" : "Show API Key"}
+                                >
+                                    {showLaravelKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    type="button"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(settings.laravelApiKey);
+                                        toast({ title: "Copied!", description: "API Key copied to clipboard" });
+                                    }}
+                                    title="Copy API Key"
+                                >
+                                    <Copy className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
