@@ -25,13 +25,16 @@ export async function OPTIONS() {
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
+        console.log(`[GET] Fetching request with ID: ${id}`);
+
         const repairRequest = getRepairRequest(id);
 
         if (!repairRequest) {
+            console.log(`[GET] Request not found: ${id}`);
             return corsResponse({ error: 'Request not found' }, 404);
         }
 
@@ -44,17 +47,18 @@ export async function GET(
 
 export async function PATCH(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
         const body = await request.json();
 
-        console.log(`Updating request ${id} for Store 3:`, body);
+        console.log(`[PATCH] Updating request ${id} for Store 3:`, body);
 
         const updated = updateRepairRequest(id, body);
 
         if (!updated) {
+            console.log(`[PATCH] Request not found: ${id}`);
             return corsResponse({ error: 'Request not found' }, 404);
         }
 
@@ -67,15 +71,17 @@ export async function PATCH(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
-        console.log(`Deleting request ${id} for Store 3`);
+        const { id } = await params;
+        console.log(`[DELETE] Attempting to delete request with ID: ${id}`);
 
         const success = deleteRepairRequest(id);
+        console.log(`[DELETE] Delete result for ${id}: ${success}`);
 
         if (!success) {
+            console.log(`[DELETE] Request not found or failed to delete: ${id}`);
             return corsResponse({ error: 'Request not found or failed to delete' }, 404);
         }
 
