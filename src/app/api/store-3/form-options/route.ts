@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {
-    getFormOptions,
-    addBrand,
-    addDeviceType,
-    addModel,
-    removeBrand,
-    removeDeviceType,
-    removeModel
-} from '@/lib/data';
+import { createClient } from '@supabase/supabase-js';
+import { getAppSettings } from '@/lib/settings';
+
+// Get Supabase client dynamically
+async function getSupabaseClient() {
+    const settings = await getAppSettings();
+    return createClient(settings.supabaseUrl, settings.supabaseAnonKey);
+}
 
 // CORS headers for cross-origin requests
 const corsHeaders = {
@@ -15,6 +14,7 @@ const corsHeaders = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key, Accept',
     'Access-Control-Max-Age': '86400',
+    'Cache-Control': 'no-store, no-cache, must-revalidate',
 };
 
 // Helper function to add CORS headers to response
@@ -27,35 +27,102 @@ export async function OPTIONS() {
     return new NextResponse(null, { status: 204, headers: corsHeaders });
 }
 
+// Helper: Get formatted form options from Supabase
+async function getFormOptionsFromDB() {
+    const supabase = await getSupabaseClient();
+    const { data: options, error } = await supabase
+        .from('form_options')
+        .select('*')
+        .order('id', { ascending: true });
+
+    if (error) {
+        console.error('Error fetching form options:', error);
+        return { brands: [], deviceTypes: {}, models: {} };
+    }
+
+    // Transform flat data to structured format
+    const brands: string[] = [];
+    const deviceTypes: { [key: string]: string[] } = {};
+    const models: { [key: string]: string[] } = {};
+
+    (options || []).forEach((opt: any) => {
+        if (opt.type === 'brand') {
+            if (!brands.includes(opt.value)) {
+                brands.push(opt.value);
+            }
+        } else if (opt.type === 'device_type' && opt.brand) {
+            if (!deviceTypes[opt.brand]) {
+                deviceTypes[opt.brand] = [];
+            }
+            if (!deviceTypes[opt.brand].includes(opt.value)) {
+                deviceTypes[opt.brand].push(opt.value);
+            }
+        } else if (opt.type === 'model' && opt.brand && opt.device_type) {
+            const key = `${opt.brand}-${opt.device_type}`;
+            if (!models[key]) {
+                models[key] = [];
+            }
+            if (!models[key].includes(opt.value)) {
+                models[key].push(opt.value);
+            }
+        }
+    });
+
+    return { brands, deviceTypes, models };
+}
+
 export async function GET() {
-    const formOptions = getFormOptions();
-    return corsResponse({ formOptions });
+    try {
+        const formOptions = await getFormOptionsFromDB();
+        return corsResponse({ formOptions });
+    } catch (error) {
+        console.error('GET form-options error:', error);
+        return corsResponse({ error: 'Failed to fetch form options' }, 500);
+    }
 }
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json();
         const { type, data } = body;
-
-        let updatedOptions;
+        const supabase = await getSupabaseClient();
 
         switch (type) {
-            case 'addBrand':
-                updatedOptions = addBrand(data.brand);
+            case 'addBrand': {
+                const { error } = await supabase
+                    .from('form_options')
+                    .insert({ type: 'brand', value: data.brand });
+                if (error) throw error;
                 break;
-            case 'addDeviceType':
-                updatedOptions = addDeviceType(data.brand, data.deviceType);
+            }
+            case 'addDeviceType': {
+                const { error } = await supabase
+                    .from('form_options')
+                    .insert({ type: 'device_type', value: data.deviceType, brand: data.brand });
+                if (error) throw error;
                 break;
-            case 'addModel':
-                updatedOptions = addModel(data.brand, data.deviceType, data.model);
+            }
+            case 'addModel': {
+                const { error } = await supabase
+                    .from('form_options')
+                    .insert({
+                        type: 'model',
+                        value: data.model,
+                        brand: data.brand,
+                        device_type: data.deviceType
+                    });
+                if (error) throw error;
                 break;
+            }
             default:
-                return NextResponse.json({ error: 'Invalid operation type' }, { status: 400 });
+                return corsResponse({ error: 'Invalid operation type' }, 400);
         }
 
-        return corsResponse({ formOptions: updatedOptions });
+        const formOptions = await getFormOptionsFromDB();
+        return corsResponse({ formOptions });
     } catch (error) {
-        return corsResponse({ error: 'Failed to process request' }, 500);
+        console.error('POST form-options error:', error);
+        return corsResponse({ error: 'Failed to add form option' }, 500);
     }
 }
 
@@ -63,25 +130,56 @@ export async function DELETE(request: NextRequest) {
     try {
         const body = await request.json();
         const { type, data } = body;
-
-        let updatedOptions;
+        const supabase = await getSupabaseClient();
 
         switch (type) {
-            case 'removeBrand':
-                updatedOptions = removeBrand(data.brand);
+            case 'removeBrand': {
+                // Delete brand and all its device types and models
+                await supabase
+                    .from('form_options')
+                    .delete()
+                    .eq('type', 'brand')
+                    .eq('value', data.brand);
+                await supabase
+                    .from('form_options')
+                    .delete()
+                    .eq('brand', data.brand);
                 break;
-            case 'removeDeviceType':
-                updatedOptions = removeDeviceType(data.brand, data.deviceType);
+            }
+            case 'removeDeviceType': {
+                // Delete device type and its models
+                await supabase
+                    .from('form_options')
+                    .delete()
+                    .eq('type', 'device_type')
+                    .eq('value', data.deviceType)
+                    .eq('brand', data.brand);
+                await supabase
+                    .from('form_options')
+                    .delete()
+                    .eq('type', 'model')
+                    .eq('brand', data.brand)
+                    .eq('device_type', data.deviceType);
                 break;
-            case 'removeModel':
-                updatedOptions = removeModel(data.brand, data.deviceType, data.model);
+            }
+            case 'removeModel': {
+                await supabase
+                    .from('form_options')
+                    .delete()
+                    .eq('type', 'model')
+                    .eq('value', data.model)
+                    .eq('brand', data.brand)
+                    .eq('device_type', data.deviceType);
                 break;
+            }
             default:
                 return corsResponse({ error: 'Invalid operation type' }, 400);
         }
 
-        return corsResponse({ formOptions: updatedOptions });
+        const formOptions = await getFormOptionsFromDB();
+        return corsResponse({ formOptions });
     } catch (error) {
-        return corsResponse({ error: 'Failed to process request' }, 500);
+        console.error('DELETE form-options error:', error);
+        return corsResponse({ error: 'Failed to remove form option' }, 500);
     }
 }
