@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getRepairRequests, createRepairRequest } from '@/lib/data';
+import { createClient } from '@supabase/supabase-js';
+import { getAppSettings } from '@/lib/settings';
 import { getLaravelApiKey } from '@/lib/api-config';
+
+// Get Supabase client dynamically
+async function getSupabaseClient() {
+  const settings = await getAppSettings();
+  return createClient(settings.supabaseUrl, settings.supabaseAnonKey);
+}
 
 /**
  * Laravel Integration API for Repair Requests
@@ -49,29 +56,42 @@ export async function GET(request: NextRequest) {
     const fromDate = searchParams.get('from_date');
     const toDate = searchParams.get('to_date');
 
-    // Fetch from local data
-    const allRequests = getRepairRequests();
+    // Fetch from Supabase
+    const supabase = await getSupabaseClient();
+    let query = supabase
+      .from('repair_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     // Filter by status if provided
-    let filteredRequests = allRequests;
     if (status) {
-      filteredRequests = filteredRequests.filter(r => r.status === status);
+      query = query.eq('status', status);
     }
 
     // Filter by dates
     if (fromDate) {
-      const from = new Date(fromDate).getTime();
-      filteredRequests = filteredRequests.filter(r => new Date(r.created_at).getTime() >= from);
+      query = query.gte('created_at', fromDate);
     }
 
     if (toDate) {
-      const to = new Date(toDate + 'T23:59:59.999Z').getTime();
-      filteredRequests = filteredRequests.filter(r => new Date(r.created_at).getTime() <= to);
+      query = query.lte('created_at', toDate + 'T23:59:59.999Z');
     }
 
-    // Apply pagination
-    const requests = filteredRequests.slice(offset, offset + limit);
-    const totalCount = filteredRequests.length;
+    // Apply pagination and execute query
+    query = query.range(offset, offset + limit - 1);
+
+    const { data: allRequests, error, count } = await query;
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to fetch requests from database' },
+        { status: 500 }
+      );
+    }
+
+    const requests = allRequests || [];
+    const totalCount = count || requests.length;
 
     // Transform data for Laravel consumption
     const laravelFormattedRequests = requests.map(request => ({
@@ -192,17 +212,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Save to local data
-    const newRequest = createRepairRequest({
-      name: body.customer_name,
-      phone: body.customer_phone,
-      email: body.customer_email,
-      address: body.customer_address,
-      brand: body.device_brand,
-      deviceType: body.device_type,
-      model: body.device_model,
-      message: body.issue_description
-    });
+    // Save to Supabase
+    const supabase = await getSupabaseClient();
+    const { data: newRequest, error } = await supabase
+      .from('repair_requests')
+      .insert({
+        customer_name: body.customer_name,
+        phone: body.customer_phone,
+        email: body.customer_email,
+        address: body.customer_address,
+        brand: body.device_brand,
+        device_type: body.device_type,
+        model: body.device_model,
+        message: body.issue_description,
+        status: 'New'
+      })
+      .select()
+      .single();
+
+    if (error || !newRequest) {
+      console.error('Supabase insert error:', error);
+      return NextResponse.json(
+        { success: false, error: 'Failed to create request in database' },
+        { status: 500 }
+      );
+    }
 
     // Return Laravel-formatted response
     const laravelFormattedRequest = {
