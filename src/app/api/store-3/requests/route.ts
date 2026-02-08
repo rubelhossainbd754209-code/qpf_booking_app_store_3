@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient, isSupabaseConfigured } from '@/lib/supabase';
 import { getLaravelApiUrl, getLaravelApiKey, getStoreId, getStoreName, getStoreCode } from '@/lib/api-config';
 
+// Force dynamic rendering - disable all caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Flag to control whether to forward to Laravel API
 const FORWARD_TO_LARAVEL = process.env.NEXT_PUBLIC_FORWARD_TO_LARAVEL !== 'false';
 
@@ -11,6 +15,9 @@ const corsHeaders = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-API-Key, Accept',
     'Access-Control-Max-Age': '86400',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
 };
 
 // Helper function to add CORS headers to response

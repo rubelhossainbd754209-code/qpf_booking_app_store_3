@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -62,6 +62,36 @@ export function RepairForm() {
     agreeToPolicy: false
   });
   const router = useRouter();
+
+  // Dynamic form options from API
+  const [formOptions, setFormOptions] = useState<{
+    brands: string[];
+    deviceTypes: { [key: string]: string[] };
+    models: { [key: string]: string[] };
+  }>({
+    brands: [],
+    deviceTypes: {},
+    models: {}
+  });
+  const [optionsLoading, setOptionsLoading] = useState(true);
+
+  // Fetch form options from API on mount
+  useEffect(() => {
+    const fetchFormOptions = async () => {
+      try {
+        const response = await fetch('/api/store-3/form-options');
+        const data = await response.json();
+        if (data.formOptions) {
+          setFormOptions(data.formOptions);
+        }
+      } catch (error) {
+        console.error('Failed to fetch form options:', error);
+      } finally {
+        setOptionsLoading(false);
+      }
+    };
+    fetchFormOptions();
+  }, []);
 
   const step1Form = useForm<z.infer<typeof step1Schema>>({
     resolver: zodResolver(step1Schema),
@@ -165,108 +195,34 @@ export function RepairForm() {
     }
   };
 
-  const brands = ["Apple", "Samsung", "Motorola", "Google", "Game Console", "Others"];
+  // Dynamic brands from API
+  const brands = formOptions.brands.length > 0 ? formOptions.brands : ["Apple", "Samsung", "Google", "OnePlus", "Xiaomi", "Others"];
 
-  // Device types based on selected brand
+  // Device types based on selected brand (dynamic from API with fallback)
   const getDeviceTypes = (brand: string) => {
-    switch (brand) {
-      case 'Samsung':
-        return [
-          "Galaxy A Series",
-          "Galaxy S Series",
-          "Galaxy J Series",
-          "Fold/Flip",
-          "M Series",
-          "F Series",
-          "TAB Series",
-          "Galaxy Watch"
-        ];
-      case 'Apple':
-        return [
-          "iPhone",
-          "iPad",
-          "MacBook",
-          "iMac",
-          "Apple Watch",
-          "AirPods"
-        ];
-      case 'Google':
-        return [
-          "Pixel Phone",
-          "Pixel Buds",
-          "Nest Hub",
-          "Chromecast"
-        ];
-      default:
-        return [
-          "Mobile Phone",
-          "Tablet",
-          "Laptop",
-          "Desktop",
-          "Gaming Console",
-          "Smart Watch",
-          "Headphones"
-        ];
+    if (formOptions.deviceTypes[brand] && formOptions.deviceTypes[brand].length > 0) {
+      return formOptions.deviceTypes[brand];
     }
+    // Fallback for brands not in database
+    return [
+      "Mobile Phone",
+      "Tablet",
+      "Laptop",
+      "Smart Watch",
+      "Other"
+    ];
   };
 
-  // Device models based on selected device type
+  // Device models based on selected device type (dynamic from API with fallback)
   const getDeviceModels = (deviceType: string) => {
-    switch (deviceType) {
-      case 'Galaxy S Series':
-        return [
-          "Galaxy S25 Ultra",
-          "Galaxy S25 Plus",
-          "Galaxy S25",
-          "Galaxy S24 Ultra",
-          "Galaxy S24 Plus",
-          "Galaxy S24",
-          "Galaxy S23 Ultra",
-          "Galaxy S23 Plus",
-          "Galaxy S23"
-        ];
-      case 'Galaxy A Series':
-        return [
-          "Galaxy A55",
-          "Galaxy A54",
-          "Galaxy A53",
-          "Galaxy A35",
-          "Galaxy A34",
-          "Galaxy A25",
-          "Galaxy A24",
-          "Galaxy A15",
-          "Galaxy A14"
-        ];
-      case 'iPhone':
-        return [
-          "iPhone 15 Pro Max",
-          "iPhone 15 Pro",
-          "iPhone 15 Plus",
-          "iPhone 15",
-          "iPhone 14 Pro Max",
-          "iPhone 14 Pro",
-          "iPhone 14 Plus",
-          "iPhone 14",
-          "iPhone 13"
-        ];
-      case 'iPad':
-        return [
-          "iPad Pro 12.9",
-          "iPad Pro 11",
-          "iPad Air",
-          "iPad Mini",
-          "iPad 10th Gen",
-          "iPad 9th Gen"
-        ];
-      default:
-        return [
-          "Model 1",
-          "Model 2",
-          "Model 3",
-          "Model 4",
-          "Model 5"
-        ];
+    const key = `${formData.brand}-${deviceType}`;
+    if (formOptions.models[key] && formOptions.models[key].length > 0) {
+      return formOptions.models[key];
     }
+    // Fallback for device types not in database
+    return [
+      "Other Model"
+    ];
   };
 
   return (

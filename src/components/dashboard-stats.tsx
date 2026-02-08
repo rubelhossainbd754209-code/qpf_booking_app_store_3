@@ -45,7 +45,12 @@ export function DashboardStats() {
 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/store-3/requests');
+      const response = await fetch(`/api/store-3/requests?t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache',
+        }
+      });
       const data = await response.json();
 
       if (data.requests) {

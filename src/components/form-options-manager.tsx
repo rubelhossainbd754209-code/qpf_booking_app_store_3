@@ -188,6 +188,64 @@ export function FormOptionsManager() {
     }
   };
 
+  const removeDeviceType = async (brand: string, deviceType: string) => {
+    try {
+      const response = await fetch('/api/store-3/form-options', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'removeDeviceType',
+          data: { brand, deviceType }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFormOptions(data.formOptions);
+        toast({
+          title: "Success",
+          description: "Device type removed successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to remove device type:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove device type",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeModel = async (brand: string, deviceType: string, model: string) => {
+    try {
+      const response = await fetch('/api/store-3/form-options', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'removeModel',
+          data: { brand, deviceType, model }
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setFormOptions(data.formOptions);
+        toast({
+          title: "Success",
+          description: "Model removed successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Failed to remove model:', error);
+      toast({
+        title: "Error",
+        description: "Failed to remove model",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return <div>Loading form options...</div>;
   }
@@ -272,7 +330,17 @@ export function FormOptionsManager() {
                     <h4 className="font-semibold mb-2">{brand}</h4>
                     <div className="flex flex-wrap gap-2">
                       {deviceTypes.map((deviceType, index) => (
-                        <Badge key={`device-type-${brand}-${deviceType}-${index}`} variant="secondary">{deviceType}</Badge>
+                        <div key={`device-type-${brand}-${deviceType}-${index}`} className="flex items-center gap-1">
+                          <Badge variant="secondary">{deviceType}</Badge>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeDeviceType(brand, deviceType)}
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -321,16 +389,29 @@ export function FormOptionsManager() {
               </div>
 
               <div className="space-y-2">
-                {Object.entries(formOptions.models).map(([key, models], keyIndex) => (
-                  <div key={`models-${key}-${keyIndex}`} className="border rounded p-3">
-                    <h4 className="font-semibold mb-2">{key.replace('-', ' - ')}</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {models.map((model, index) => (
-                        <Badge key={`model-${key}-${model}-${index}`} variant="outline">{model}</Badge>
-                      ))}
+                {Object.entries(formOptions.models).map(([key, models], keyIndex) => {
+                  const [brand, deviceType] = key.split('-');
+                  return (
+                    <div key={`models-${key}-${keyIndex}`} className="border rounded p-3">
+                      <h4 className="font-semibold mb-2">{key.replace('-', ' - ')}</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {models.map((model, index) => (
+                          <div key={`model-${key}-${model}-${index}`} className="flex items-center gap-1">
+                            <Badge variant="outline">{model}</Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeModel(brand, deviceType, model)}
+                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>
